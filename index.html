@@ -7,9 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Syncopate:wght@700;900&display=swap" rel="stylesheet">
     
     <style>
-        /* ==========================================================================
-           1. STRICT OBS CONSTRAINTS & VARIABLES (For 800x100 Frame)
-           ========================================================================== */
+       
         :root {
             --void-obsidian: #030008;
             --void-deep: #0a011a;
@@ -22,7 +20,6 @@
             --gold-bright: #ffea75;
             --gold-white: #fffdf5;
 
-            /* Mathematically safe sizes for an 800x100 OBS Source */
             --overlay-width: 740px;  /* Leaves 30px safe zone on left/right */
             --overlay-height: 64px;  /* Leaves 18px safe zone on top/bottom */
             --logo-size: 84px;       /* Fits perfectly inside 100px with room for glow */
@@ -34,7 +31,6 @@
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* Forces exact centering within the OBS Browser Source bounds */
         body {
             width: 100vw; height: 100vh;
             background-color: transparent; 
@@ -50,7 +46,6 @@
             display: flex; align-items: center; z-index: 10;
         }
 
-        /* Ambient light mathematically constrained so it never touches the edge */
         .ambient-backlight {
             position: absolute; top: 50%; left: var(--sweep-progress);
             transform: translate(-50%, -50%); width: 250px; height: 90px;
@@ -95,9 +90,7 @@
             box-shadow: inset 0 0 30px rgba(0,0,0,1);
         }
 
-        /* ==========================================================================
-           3. LOGO SWEEPER
-           ========================================================================== */
+ 
         .logo-sweeper {
             position: absolute; top: 50%; left: var(--sweep-progress);
             transform: translate(-50%, -50%); 
@@ -118,9 +111,7 @@
             background-color: var(--void-obsidian); border: 2px solid var(--void-obsidian);
         }
 
-        /* ==========================================================================
-           4. DOPAMINE TYPOGRAPHY & GAMIFICATION DATA BLOCKS
-           ========================================================================== */
+        
         .data-module {
             position: relative; z-index: 5;
             display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
@@ -166,18 +157,12 @@
         .dopamine-strike .hit-ripple { animation: rippleBurst 0.6s ease-out forwards; }
         .dopamine-strike .lens-flare { animation: flareSlash 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-        /* ==========================================================================
-           5. SEPARATORS
-           ========================================================================== */
         .separator {
             position: relative; z-index: 5; width: 2px; height: 35px;
             background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.8), rgba(144, 0, 255, 1), transparent);
             box-shadow: 0 0 8px rgba(144, 0, 255, 0.9); border-radius: 1px;
         }
 
-        /* ==========================================================================
-           6. ZEIGARNIK PROGRESS BAR (Psychological Void)
-           ========================================================================== */
         .goal-module {
             display: flex; flex-direction: column; justify-content: center;
             flex-grow: 1; min-width: 180px; max-width: 200px; z-index: 5;
@@ -219,9 +204,6 @@
             will-change: width; transition: width 1.5s var(--ease-dopamine);
         }
 
-        /* ==========================================================================
-           7. EVENT TICKER
-           ========================================================================== */
         .ticker-module {
             display: flex; align-items: center;
             background: rgba(10, 1, 26, 0.85); border-left: 2px solid var(--gold-pure);
@@ -238,9 +220,6 @@
 
         .ticker-highlight { color: var(--gold-pure); text-shadow: 0 0 8px rgba(255, 215, 0, 0.8); }
 
-        /* ==========================================================================
-           8. KEYFRAMES
-           ========================================================================== */
         @keyframes borderFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
         
         /* The highly addictive kinetic animations */
@@ -337,11 +316,7 @@
     </div>
 
     <script>
-        /**
-         * ==========================================================================================
-         * JAVASCRIPT ENGINES (Math, Canvas, Sweep, and Slot-Machine Logic)
-         * ==========================================================================================
-         */
+ 
 
         // 1. Simplex Math Engine
         const SimplexMath = (function() {
@@ -522,10 +497,10 @@
             async runCycle() {
                 await this.sleep(1000);
                 while(true) {
-                    await this.tweenSweep(0, 100, 2500); // Reveal
-                    await this.sleep(15000); // Hold for 10 Sec
-                    await this.tweenSweep(100, 0, 2500); // Hide
-                    await this.sleep(2000); // Wait 2 Sec
+                    await this.tweenSweep(0, 100, 2500); 
+                    await this.sleep(15000);
+                    await this.tweenSweep(100, 0, 2500); 
+                    await this.sleep(2000); 
                 }
             }
         }
