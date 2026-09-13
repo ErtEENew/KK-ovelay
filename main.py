@@ -2,6 +2,7 @@ import time
 import sqlite3
 import json
 import re
+import random
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -12,7 +13,7 @@ import httpx
 app = FastAPI()
 
 CACHE = {}
-CACHE_TTL = 30  # Cache for 30 seconds to avoid spamming the APIs
+CACHE_TTL = 30  
 
 DB_FILE = "streamers.db"
 
@@ -40,50 +41,99 @@ class StreamerConfigUpdate(BaseModel):
     sub_goal: int
     ticker_text: str
 
-# --- 100% KEYLESS PUBLIC DATA FETCHING (Triple-Layer) ---
+# Helper to convert "2.41K" to 2410
+def parse_yt_number(num_str):
+    num_str = str(num_str).upper().replace(',', '').strip()
+    try:
+        if 'K' in num_str:
+            return int(float(num_str.replace('K', '')) * 1000)
+        elif 'M' in num_str:
+            return int(float(num_str.replace('M', '')) * 1000000)
+        else:
+            return int(num_str)
+    except Exception:
+        return 0
+
+# Public Mesh Servers
+INVIDIOUS_INSTANCES = [
+    "https://invidious.nerdvpn.de",
+    "https://inv.tux.pizza",
+    "https://invidious.fdn.fr",
+    "https://vid.puffyan.us",
+    "https://invidious.perennialte.ch"
+]
+
+# --- 100% KEYLESS DATA FETCHING (Triple-Layer) ---
 async def get_keyless_youtube_data(client, channel_id, video_id):
     subs = 0
     likes = 0
 
-    # Disguise the cloud server as a standard Chrome web browser to bypass blocks
+    # Disguise the cloud server as a standard Chrome web browser
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept-Language": "en-US,en;q=0.9"
     }
+    
+    # Crucial: Bypasses YouTube's Cookie Consent blocker for Render/Cloud servers
+    cookies = {
+        "CONSENT": "YES+cb.20230214-11-p0.en+FX+430",
+        "SOCS": "CAEQAw"
+    }
 
-    # LAYER 1: Mixerno.space API (Returns exact/abbreviated integers)
+    # LAYER 1: Axern Space API
     if channel_id:
         try:
-            m_res = await client.get(f"https://mixerno.space/api/youtube-channel-counter/user/{channel_id}", headers=headers, timeout=5.0)
-            if m_res.status_code == 200:
-                data = m_res.json()
-                if "counts" in data and len(data["counts"]) > 0:
-                    subs = int(data["counts"][0].get("count", 0))
-        except Exception as e:
-            print(f"Mixerno fetch failed: {e}")
+            ax_res = await client.get(f"https://axern.space/api/get?platform=youtube&type=channel&id={channel_id}", headers=headers, timeout=4.0)
+            if ax_res.status_code == 200:
+                data = ax_res.json()
+                if "estSubCount" in data:
+                    subs = int(data["estSubCount"])
+                elif "subCount" in data:
+                    subs = int(data["subCount"])
+        except Exception:
+            pass
 
-    # LAYER 2: Fallback to Raw HTML Scraping if Layer 1 fails
+    # LAYER 2: Invidious Mesh Network
+    if subs == 0 and channel_id:
+        instances = random.sample(INVIDIOUS_INSTANCES, len(INVIDIOUS_INSTANCES))
+        for instance in instances:
+            try:
+                sub_url = f"{instance}/api/v1/channels/{channel_id}"
+                sub_res = await client.get(sub_url, headers=headers, timeout=4.0)
+                if sub_res.status_code == 200:
+                    data = sub_res.json()
+                    if "subCount" in data:
+                        subs = int(data["subCount"])
+                        break
+            except Exception:
+                continue
+
+    # LAYER 3: Raw HTML Scrape with GDPR Bypass Cookies
     if subs == 0 and channel_id:
         try:
-            c_res = await client.get(f"https://www.youtube.com/channel/{channel_id}", headers=headers, timeout=5.0)
-            c_match = re.search(r'ytInitialData = ({.*?});</script>', c_res.text)
-            if c_match:
-                data = json.loads(c_match.group(1))
-                header = data.get('header', {}).get('c4TabbedHeaderRenderer', {})
-                subs_text = header.get('subscriberCountText', {}).get('simpleText', '0').split(' ')[0]
+            c_res = await client.get(
+                f"https://www.youtube.com/channel/{channel_id}", 
+                headers=headers,
+                cookies=cookies,
+                timeout=5.0
+            )
+            # Find the subscriber count hidden in the raw webpage code
+            match1 = re.search(r'"subscriberCountText":\{"accessibility":\{"accessibilityData":\{"label":"([^"]+)"\}', c_res.text)
+            match2 = re.search(r'"subscriberCountText":\{"simpleText":"([^"]+)"\}', c_res.text)
+            
+            target_str = None
+            if match1:
+                target_str = match1.group(1)
+            elif match2:
+                target_str = match2.group(1)
                 
-                # Convert abbreviated text like "1.25K" to 1250
-                subs_text = subs_text.upper().replace(',', '')
-                if 'K' in subs_text:
-                    subs = int(float(subs_text.replace('K', '')) * 1000)
-                elif 'M' in subs_text:
-                    subs = int(float(subs_text.replace('M', '')) * 1000000)
-                else:
-                    subs = int(subs_text)
+            if target_str:
+                target_str = target_str.replace('subscribers', '').replace('subscriber', '').strip()
+                subs = parse_yt_number(target_str)
         except Exception as e:
             print(f"HTML Scrape failed: {e}")
 
-    # LAYER 3: Fetch Live Likes using Return YouTube Dislike open database
+    # LIVE LIKES: Return YouTube Dislike API
     if video_id:
         try:
             ryd_res = await client.get(f"https://returnyoutubedislikeapi.com/votes?videoId={video_id}", headers=headers, timeout=5.0)
@@ -123,15 +173,15 @@ async def get_streamer_data(username: str):
         now = time.time()
         cache_key = f"{channel_id}:{video_id}"
 
-        # Only pull from cache if the data is recent AND the subs are greater than 0
+        # Only pull from cache if subs > 0 to prevent caching a failed fetch
         if cache_key in CACHE and CACHE[cache_key]["expires_at"] > now and CACHE[cache_key]["data"]["subs"] > 0:
             subs = CACHE[cache_key]["data"]["subs"]
             likes = CACHE[cache_key]["data"]["likes"]
         else:
+            # Force httpx to follow URL redirects (crucial for YouTube routing)
             async with httpx.AsyncClient(follow_redirects=True) as client:
                 subs, likes = await get_keyless_youtube_data(client, channel_id, video_id)
             
-            # NEVER cache a '0' failure. Keep retrying if it fails.
             if subs > 0:
                 CACHE[cache_key] = {"data": {"subs": subs, "likes": likes}, "expires_at": now + CACHE_TTL}
 
