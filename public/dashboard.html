@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streamer Control Hub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;800&family=Syncopate:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #030008; --panel: #0a011a; --purple: #9000ff; --text: #ffffff; --dim: #8c8c9e; }
+        body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding: 30px 15px; display: flex; justify-content: center; }
+        .dashboard { background: var(--panel); border: 1px solid rgba(144, 0, 255, 0.3); border-radius: 16px; padding: 25px; width: 100%; max-width: 580px; box-shadow: 0 20px 40px rgba(0,0,0,0.8), inset 0 0 20px rgba(144, 0, 255, 0.1); }
+        h1 { font-family: 'Syncopate', sans-serif; font-size: 1.1rem; color: #fff; text-align: center; margin: 0 0 5px 0; }
+        .sub-header { text-align: center; font-size: 0.75rem; color: var(--purple); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 25px; }
+        .group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--dim); margin-bottom: 6px; }
+        input, textarea { width: 100%; padding: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; font-family: 'Montserrat', sans-serif; box-sizing: border-box; font-size: 0.9rem; }
+        input:focus, textarea:focus { outline: none; border-color: var(--purple); box-shadow: 0 0 10px rgba(144, 0, 255, 0.3); }
+        .obs-link-box { background: rgba(144, 0, 255, 0.08); border: 1px dashed var(--purple); padding: 12px; border-radius: 8px; margin-bottom: 20px; }
+        .obs-url { font-size: 0.75rem; color: #00ffaa; word-break: break-all; margin: 5px 0; font-family: monospace; }
+        .btn { width: 100%; padding: 14px; background: linear-gradient(90deg, #4d0099, var(--purple)); color: #fff; border: none; border-radius: 6px; font-weight: 800; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 5px 15px rgba(144, 0, 255, 0.4); }
+        .btn:hover { filter: brightness(1.2); }
+        #status-msg { text-align: center; font-size: 0.8rem; margin-top: 15px; font-weight: 700; min-height: 20px; }
+        .warning-text { color: #ffea75; font-size: 0.65rem; margin-top: 4px; display: block; text-transform: none; font-weight: 600;}
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <h1>CONTROL DASHBOARD</h1>
+        <div class="sub-header" id="target-channel">UPLINK SETUP</div>
+
+        <div class="obs-link-box">
+            <label>YOUR OBS BROWSER SOURCE URL</label>
+            <div class="obs-url" id="obs-url">Loading...</div>
+        </div>
+
+        <div class="group">
+            <label>Streamer Handle (Creates your unique link)</label>
+            <input type="text" id="username" placeholder="e.g. rody" oninput="updateUrls()">
+        </div>
+
+        <div class="group">
+            <label>Security PIN (Locks your profile from others)</label>
+            <input type="password" id="pin" placeholder="Enter 4-digit PIN">
+        </div>
+
+        <div class="group">
+            <label>YouTube API Key</label>
+            <input type="password" id="yt_api_key" placeholder="AIzaSy...">
+            <span class="warning-text">*Stored securely on the server. Never exposed to viewers.</span>
+        </div>
+
+        <div class="group">
+            <label>YouTube Channel ID</label>
+            <input type="text" id="channel_id" placeholder="UCxxxxxxxxxxxxxx">
+        </div>
+
+        <div class="group">
+            <label>Live Stream Video ID (For Live Likes - Optional)</label>
+            <input type="text" id="video_id" placeholder="e.g. dQw4w9WgXcQ">
+        </div>
+
+        <div class="group">
+            <label>Subscriber Goal</label>
+            <input type="number" id="sub_goal" value="5000">
+        </div>
+
+        <div class="group">
+            <label>Ticker Messages (Separate with commas)</label>
+            <textarea id="ticker_text" rows="2">WELCOME TO THE STREAM, DROP A LIKE, SUBSCRIBE</textarea>
+        </div>
+
+        <button class="btn" onclick="saveData()">Update Live Overlay</button>
+        <div id="status-msg"></div>
+    </div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        let currentStreamer = urlParams.get('user') || '';
+        if(currentStreamer) document.getElementById('username').value = currentStreamer;
+
+        function updateUrls() {
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            const host = window.location.origin;
+            const obsDisplay = document.getElementById('obs-url');
+            if(user) {
+                obsDisplay.innerText = `${host}/overlay?user=${user}`;
+                document.getElementById('target-channel').innerText = `PROFILE: ${user.toUpperCase()}`;
+            } else {
+                obsDisplay.innerText = "Please enter a username above";
+            }
+        }
+        updateUrls();
+
+        // Load non-sensitive info if available
+        async function loadStreamerData() {
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            if(!user) return;
+            try {
+                const res = await fetch(`/api/streamer/${user}`);
+                const data = await res.json();
+                if(data.registered) {
+                    document.getElementById('sub_goal').value = data.sub_goal;
+                    document.getElementById('ticker_text').value = data.ticker_text;
+                }
+            } catch(err) { console.error(err); }
+        }
+        if(currentStreamer) loadStreamerData();
+
+        async function saveData() {
+            const user = document.getElementById('username').value.trim().toLowerCase();
+            const pin = document.getElementById('pin').value.trim();
+            const apiKey = document.getElementById('yt_api_key').value.trim();
+            const channelId = document.getElementById('channel_id').value.trim();
+            const videoId = document.getElementById('video_id').value.trim();
+            const subGoal = parseInt(document.getElementById('sub_goal').value) || 5000;
+            const tickerText = document.getElementById('ticker_text').value.trim();
+            const statusEl = document.getElementById('status-msg');
+
+            if(!user || !pin || !apiKey || !channelId) {
+                statusEl.style.color = "#ff003c";
+                statusEl.innerText = "Username, PIN, API Key, and Channel ID are required!";
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/streamer/${user}/save`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        pin: pin,
+                        yt_api_key: apiKey,
+                        channel_id: channelId,
+                        video_id: videoId,
+                        sub_goal: subGoal,
+                        ticker_text: tickerText
+                    })
+                });
+
+                const json = await res.json();
+                if(res.ok) {
+                    statusEl.style.color = "#00ff88";
+                    statusEl.innerText = json.message || "Updated successfully!";
+                } else {
+                    statusEl.style.color = "#ff003c";
+                    statusEl.innerText = json.detail || "Update failed. Wrong PIN?";
+                }
+            } catch(e) {
+                statusEl.style.color = "#ff003c";
+                statusEl.innerText = "Server communication error.";
+            }
+        }
+    </script>
+</body>
+</html>
