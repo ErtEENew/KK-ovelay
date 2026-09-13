@@ -21,6 +21,7 @@
         .btn:hover { filter: brightness(1.2); }
         #status-msg { text-align: center; font-size: 0.8rem; margin-top: 15px; font-weight: 700; min-height: 20px; }
         .warning-text { color: #ffea75; font-size: 0.65rem; margin-top: 4px; display: block; text-transform: none; font-weight: 600;}
+        .hint-text { color: var(--dim); font-size: 0.65rem; margin-top: 4px; display: block; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -36,7 +37,7 @@
 
         <div class="group">
             <label>Streamer Handle (Creates your unique link)</label>
-            <input type="text" id="username" placeholder="e.g. Kala-aKaarGaming" oninput="updateUrls()">
+            <input type="text" id="username" placeholder="e.g. rody" oninput="updateUrls()">
         </div>
 
         <div class="group">
@@ -56,8 +57,9 @@
         </div>
 
         <div class="group">
-            <label>Live Stream Video ID (For Live Likes - Optional)</label>
-            <input type="text" id="video_id" placeholder="e.g. dQw4w9WgXcQ">
+            <label>Live Stream Link (For Live Likes - Optional)</label>
+            <input type="text" id="video_id" placeholder="Paste full YouTube stream link here..." onblur="extractVideoId()">
+            <span class="hint-text">Paste the full URL. We will automatically extract the ID.</span>
         </div>
 
         <div class="group">
@@ -92,6 +94,20 @@
         }
         updateUrls();
 
+        // Helper function to extract YouTube Video ID from any URL format
+        function extractVideoId() {
+            const input = document.getElementById('video_id');
+            const rawValue = input.value.trim();
+            if (rawValue) {
+                // Regex to handle standard watch?v=, youtu.be/, and live/ formats
+                const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|live\/)([^#\&\?]*).*/;
+                const match = rawValue.match(regExp);
+                if (match && match[2].length === 11) {
+                    input.value = match[2]; // Replace the URL with just the ID
+                }
+            }
+        }
+
         // Load non-sensitive info if available
         async function loadStreamerData() {
             const user = document.getElementById('username').value.trim().toLowerCase();
@@ -108,6 +124,9 @@
         if(currentStreamer) loadStreamerData();
 
         async function saveData() {
+            // Force extraction just in case the user clicked the button before clicking off the input
+            extractVideoId();
+
             const user = document.getElementById('username').value.trim().toLowerCase();
             const pin = document.getElementById('pin').value.trim();
             const apiKey = document.getElementById('yt_api_key').value.trim();
