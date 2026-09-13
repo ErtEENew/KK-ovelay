@@ -1,5 +1,6 @@
 import time
 import sqlite3
+import random
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -10,9 +11,17 @@ import httpx
 app = FastAPI()
 
 CACHE = {}
-CACHE_TTL = 30  
+CACHE_TTL = 30  # Cache for 30s to prevent spamming public APIs
 
 DB_FILE = "streamers.db"
+
+# Decentralized public YouTube instances (Bypasses Render blocks)
+INVIDIOUS_INSTANCES = [
+    "https://invidious.jing.rocks",
+    "https://inv.tux.pizza",
+    "https://invidious.nerdvpn.de",
+    "https://vid.puffyan.us"
+]
 
 def init_db():
     with sqlite3.connect(DB_FILE) as conn:
@@ -21,8 +30,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS streamers (
                 username TEXT PRIMARY KEY,
                 pin TEXT NOT NULL,
-                yt_api_key TEXT NOT NULL,
-                channel_id TEXT NOT NULL,
+                channel_id TEXT DEFAULT '',
                 video_id TEXT DEFAULT '',
                 sub_goal INTEGER DEFAULT 5000,
                 ticker_text TEXT DEFAULT 'WELCOME TO THE STREAM'
@@ -34,13 +42,44 @@ init_db()
 
 class StreamerConfigUpdate(BaseModel):
     pin: str
-    yt_api_key: str
     channel_id: str
     video_id: Optional[str] = ""
     sub_goal: int
     ticker_text: str
 
-# --- Static Frontend Routes ---
+# --- 100% KEYLESS PUBLIC DATA FETCHING ---
+async def get_keyless_youtube_data(client, channel_id, video_id):
+    subs = 0
+    likes = 0
+
+    # 1. Fetch Likes (Return YouTube Dislike API - Extremely Reliable)
+    if video_id:
+        try:
+            ryd_url = f"https://returnyoutubedislikeapi.com/votes?videoId={video_id}"
+            ryd_res = await client.get(ryd_url, timeout=5.0)
+            if ryd_res.status_code == 200:
+                likes = ryd_res.json().get("likes", 0)
+        except Exception as e:
+            print(f"Likes Fetch Error: {e}")
+
+    # 2. Fetch Subs (Invidious Network Mesh)
+    if channel_id:
+        # Shuffle instances to avoid rate limits
+        instances = random.sample(INVIDIOUS_INSTANCES, len(INVIDIOUS_INSTANCES))
+        for instance in instances:
+            try:
+                sub_url = f"{instance}/api/v1/channels/{channel_id}"
+                sub_res = await client.get(sub_url, timeout=4.0)
+                if sub_res.status_code == 200:
+                    data = sub_res.json()
+                    subs = data.get("subCount", 0)
+                    break  # Success! Exit loop
+            except:
+                continue # Try the next instance if this one is down
+
+    return subs, likes
+
+# --- Static Routes ---
 @app.get("/dashboard")
 async def get_dashboard():
     return FileResponse("public/dashboard.html")
@@ -49,23 +88,23 @@ async def get_dashboard():
 async def get_overlay():
     return FileResponse("public/overlay.html")
 
-# --- ONE Single API Endpoint for Fetching Data ---
+# --- API Endpoints ---
 @app.get("/api/streamer/{username}")
 async def get_streamer_data(username: str):
     user = username.strip().lower()
     
     with sqlite3.connect(DB_FILE) as conn:
         cursor = conn.cursor()
-        cursor.execute("SELECT yt_api_key, channel_id, video_id, sub_goal, ticker_text FROM streamers WHERE username = ?", (user,))
+        cursor.execute("SELECT channel_id, video_id, sub_goal, ticker_text FROM streamers WHERE username = ?", (user,))
         row = cursor.fetchone()
 
     if not row:
-        return {"registered": False, "sub_goal": 5000, "ticker_text": "AWAITING CONFIGURATION IN DASHBOARD", "subs": 0, "likes": 0}
+        return {"registered": False, "sub_goal": 5000, "ticker_text": "AWAITING CONFIGURATION", "subs": 0, "likes": 0}
 
-    yt_api_key, channel_id, video_id, sub_goal, ticker_text = row
+    channel_id, video_id, sub_goal, ticker_text = row
     subs, likes = 0, 0
 
-    if yt_api_key and channel_id:
+    if channel_id:
         now = time.time()
         cache_key = f"{channel_id}:{video_id}"
 
@@ -74,26 +113,8 @@ async def get_streamer_data(username: str):
             likes = CACHE[cache_key]["data"]["likes"]
         else:
             async with httpx.AsyncClient() as client:
-                try:
-                    # Fetch Subs
-                    sub_url = f"https://www.googleapis.com/youtube/v3/channels?part=statistics&id={channel_id}&key={yt_api_key}"
-                    sub_res = await client.get(sub_url)
-                    sub_data = sub_res.json()
-                    if "items" in sub_data and len(sub_data["items"]) > 0:
-                        subs = int(sub_data["items"][0]["statistics"].get("subscriberCount", 0))
-
-                    # Fetch Likes
-                    if video_id:
-                        vid_url = f"https://www.googleapis.com/youtube/v3/videos?part=statistics&id={video_id}&key={yt_api_key}"
-                        vid_res = await client.get(vid_url)
-                        vid_data = vid_res.json()
-                        if "items" in vid_data and len(vid_data["items"]) > 0:
-                            likes = int(vid_data["items"][0]["statistics"].get("likeCount", 0))
-                            
-                except Exception as e:
-                    print(f"YouTube Fetch Error for {user}: {e}")
-
-            # Save to Cache
+                subs, likes = await get_keyless_youtube_data(client, channel_id, video_id)
+            
             CACHE[cache_key] = {"data": {"subs": subs, "likes": likes}, "expires_at": now + CACHE_TTL}
 
     return {
@@ -115,20 +136,21 @@ async def save_streamer_data(username: str, data: StreamerConfigUpdate):
 
         if row is None:
             cursor.execute("""
-                INSERT INTO streamers (username, pin, yt_api_key, channel_id, video_id, sub_goal, ticker_text)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (user, data.pin, data.yt_api_key.strip(), data.channel_id.strip(), data.video_id.strip(), data.sub_goal, data.ticker_text.strip()))
+                INSERT INTO streamers (username, pin, channel_id, video_id, sub_goal, ticker_text)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user, data.pin, data.channel_id.strip(), data.video_id.strip(), data.sub_goal, data.ticker_text.strip()))
             conn.commit()
             return {"status": "created", "message": "Streamer profile created and locked with PIN."}
         else:
-            existing_pin = row[0]
-            if existing_pin != data.pin:
-                raise HTTPException(status_code=403, detail="Invalid PIN for this channel.")
+            if row[0] != data.pin:
+                raise HTTPException(status_code=403, detail="Invalid PIN for this profile.")
 
             cursor.execute("""
                 UPDATE streamers 
-                SET yt_api_key = ?, channel_id = ?, video_id = ?, sub_goal = ?, ticker_text = ?
+                SET channel_id = ?, video_id = ?, sub_goal = ?, ticker_text = ?
                 WHERE username = ?
-            """, (data.yt_api_key.strip(), data.channel_id.strip(), data.video_id.strip(), data.sub_goal, data.ticker_text.strip(), user))
+            """, (data.channel_id.strip(), data.video_id.strip(), data.sub_goal, data.ticker_text.strip(), user))
             conn.commit()
-            return {"status": "updated", "message": "Overlay settings updated successfully."}
+            return {"status": "updated", "message": "Overlay settings updated securely."}
+
+app.mount("/", StaticFiles(directory="public", html=True), name="public")
