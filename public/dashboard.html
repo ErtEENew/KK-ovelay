@@ -37,7 +37,7 @@
 
         <div class="group">
             <label>Streamer Handle (Creates your unique link)</label>
-            <input type="text" id="username" placeholder="e.g. KK" oninput="updateUrls()">
+            <input type="text" id="username" placeholder="e.g. rody" oninput="updateUrls()">
         </div>
 
         <div class="group">
@@ -46,9 +46,9 @@
         </div>
 
         <div class="group">
-            <label>YouTube API Key</label>
-            <input type="password" id="yt_api_key" placeholder="AIzaSy...">
-            <span class="warning-text">*Stored securely on the server. Never exposed to viewers.</span>
+            <label>YouTube API Key (Optional)</label>
+            <input type="password" id="yt_api_key" placeholder="Leave blank to use public numbers">
+            <span class="warning-text">*If empty, we will scrape public (abbreviated) numbers like "12.5K".</span>
         </div>
 
         <div class="group">
@@ -94,21 +94,18 @@
         }
         updateUrls();
 
-        // Helper function to extract YouTube Video ID from any URL format
         function extractVideoId() {
             const input = document.getElementById('video_id');
             const rawValue = input.value.trim();
             if (rawValue) {
-                // Regex to handle standard watch?v=, youtu.be/, and live/ formats
                 const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|live\/)([^#\&\?]*).*/;
                 const match = rawValue.match(regExp);
                 if (match && match[2].length === 11) {
-                    input.value = match[2]; // Replace the URL with just the ID
+                    input.value = match[2];
                 }
             }
         }
 
-        // Load non-sensitive info if available
         async function loadStreamerData() {
             const user = document.getElementById('username').value.trim().toLowerCase();
             if(!user) return;
@@ -124,21 +121,21 @@
         if(currentStreamer) loadStreamerData();
 
         async function saveData() {
-            // Force extraction just in case the user clicked the button before clicking off the input
             extractVideoId();
 
             const user = document.getElementById('username').value.trim().toLowerCase();
             const pin = document.getElementById('pin').value.trim();
-            const apiKey = document.getElementById('yt_api_key').value.trim();
+            const apiKey = document.getElementById('yt_api_key').value.trim(); // Now allowed to be empty
             const channelId = document.getElementById('channel_id').value.trim();
             const videoId = document.getElementById('video_id').value.trim();
             const subGoal = parseInt(document.getElementById('sub_goal').value) || 5000;
             const tickerText = document.getElementById('ticker_text').value.trim();
             const statusEl = document.getElementById('status-msg');
 
-            if(!user || !pin || !apiKey || !channelId) {
+            // REMOVED apiKey from this check
+            if(!user || !pin || !channelId) {
                 statusEl.style.color = "#ff003c";
-                statusEl.innerText = "Username, PIN, API Key, and Channel ID are required!";
+                statusEl.innerText = "Username, PIN, and Channel ID are required!";
                 return;
             }
 
