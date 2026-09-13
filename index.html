@@ -7,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Syncopate:wght@700;900&display=swap" rel="stylesheet">
     
     <style>
-       
         :root {
             --void-obsidian: #030008;
             --void-deep: #0a011a;
@@ -19,6 +18,11 @@
             --gold-pure: #ffd700;
             --gold-bright: #ffea75;
             --gold-white: #fffdf5;
+
+            /* Added premium text variables */
+            --text-pure: #ffffff;
+            --text-silver: #d4d4dd;
+            --text-dark: #111116;
 
             --overlay-width: 740px; 
             --overlay-height: 64px;  
@@ -53,16 +57,14 @@
             z-index: 0; pointer-events: none; mix-blend-mode: screen; will-change: left;
         }
 
-
         .master-overlay-wrapper {
             position: absolute; left: 0; top: 0; width: 100%; height: 100%;
             padding: 2px; border-radius: 40px;
             display: flex; flex-direction: column;
-            background: linear-gradient(90deg, var(--void-obsidian), var(--purple-rich), var(--gold-dark), var(--gold-pure), var(--purple-neon), var(--void-obsidian));
+            background: linear-gradient(90deg, var(--void-obsidian), var(--purple-rich), var(--purple-core), var(--purple-neon), var(--purple-rich), var(--void-obsidian));
             background-size: 400% 100%; animation: borderFlow 12s linear infinite;
             
-            /* Shadows precisely tuned to <15px to prevent 800x100 frame bleeding */
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.9), 0 0 15px rgba(144, 0, 255, 0.4), inset 0 0 10px rgba(255, 215, 0, 0.2);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.9), 0 0 15px rgba(144, 0, 255, 0.4), inset 0 0 10px rgba(144, 0, 255, 0.2);
             clip-path: inset(0 calc(100% - var(--sweep-progress)) 0 0);
             z-index: 1; will-change: clip-path;
         }
@@ -84,17 +86,15 @@
 
         .screen-texture {
             position: absolute; inset: 0; z-index: 4; pointer-events: none;
-            background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 0, 0, 0.4) 1px, rgba(0, 0, 0, 0.4) 2px);
+            background-image: repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0, 0, 0, 0.6) 1px, rgba(0, 0, 0, 0.6) 2px);
             box-shadow: inset 0 0 30px rgba(0,0,0,1);
         }
 
- 
         .logo-sweeper {
             position: absolute; top: 50%; left: var(--sweep-progress);
             transform: translate(-50%, -50%); 
             width: var(--logo-size); height: var(--logo-size); z-index: 100;
             background-color: var(--void-deep); border-radius: 50%; padding: 4px;
-            /* Glow restricted to 8px max to prevent OBS top/bottom cutoffs */
             box-shadow: 0 0 8px rgba(144, 0, 255, 0.9), inset 0 0 10px rgba(255, 215, 0, 0.8), 0 5px 10px rgba(0, 0, 0, 0.9);
             display: flex; justify-content: center; align-items: center;
             will-change: left;
@@ -109,42 +109,43 @@
             background-color: var(--void-obsidian); border: 2px solid var(--void-obsidian);
         }
 
-        
         .data-module {
             position: relative; z-index: 5;
             display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
             height: 100%; min-width: 65px;
         }
 
+        /* CHANGED: Bright white premium labels for stark contrast */
         .data-label {
             font-family: 'Syncopate', sans-serif; font-size: 0.45rem; font-weight: 900;
-            text-transform: uppercase; letter-spacing: 0.2em; color: var(--void-obsidian); 
-            background: linear-gradient(90deg, var(--gold-pure), var(--gold-bright)); 
+            text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-dark); 
+            background: linear-gradient(90deg, #ffffff, #d8d8df); 
             padding: 2px 6px; border-radius: 3px; margin-bottom: 2px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.8), 0 0 5px rgba(255, 215, 0, 0.4);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.9), 0 0 5px rgba(255, 255, 255, 0.3);
             transform-origin: left center;
         }
 
+        /* CHANGED: White/Silver text with heavy black drop shadow */
         .data-value {
             font-family: 'Montserrat', sans-serif; font-size: 1.6rem; font-weight: 900;
             line-height: 0.9; letter-spacing: 0.02em;
-            background: linear-gradient(180deg, var(--gold-white) 0%, var(--gold-pure) 45%, var(--gold-dark) 100%);
+            background: linear-gradient(180deg, var(--text-pure) 0%, #f4f4f9 45%, var(--text-silver) 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 1)) drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+            /* The black shadow is crucial - it separates text from the background */
+            filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 1)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
             position: relative; transform-origin: left center;
         }
 
-        /* DOPAMINE FX: The Shockwave and Lens Flare */
         .hit-ripple {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
             width: 80px; height: 80px; border-radius: 50%;
-            background: radial-gradient(circle at center, rgba(255, 215, 0, 0.9) 0%, transparent 60%);
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.9) 0%, transparent 60%);
             opacity: 0; z-index: -1; pointer-events: none; mix-blend-mode: color-dodge;
         }
         .lens-flare {
             position: absolute; top: 50%; left: -50%; transform: translateY(-50%);
             width: 200%; height: 2px; background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 0 10px #fff, 0 0 20px var(--gold-pure);
+            box-shadow: 0 0 10px #fff, 0 0 20px var(--purple-neon);
             opacity: 0; pointer-events: none; mix-blend-mode: screen; z-index: 10;
         }
 
@@ -157,7 +158,7 @@
 
         .separator {
             position: relative; z-index: 5; width: 2px; height: 35px;
-            background: linear-gradient(to bottom, transparent, rgba(255, 215, 0, 0.8), rgba(144, 0, 255, 1), transparent);
+            background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.5), rgba(144, 0, 255, 1), transparent);
             box-shadow: 0 0 8px rgba(144, 0, 255, 0.9); border-radius: 1px;
         }
 
@@ -170,57 +171,59 @@
 
         .goal-title {
             font-family: 'Syncopate', sans-serif; font-size: 0.45rem; font-weight: 900;
-            color: var(--void-obsidian); background: linear-gradient(90deg, var(--gold-pure), var(--gold-bright));
+            color: var(--text-dark); background: linear-gradient(90deg, #ffffff, #d8d8df);
             padding: 2px 6px; border-radius: 3px; letter-spacing: 0.15em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.9);
         }
 
         .goal-numbers {
-            font-size: 0.7rem; font-weight: 900; color: var(--white); letter-spacing: 1px;
-            text-shadow: 0 0 8px rgba(255, 215, 0, 0.8), 0 2px 4px rgba(0,0,0,1);
+            font-size: 0.75rem; font-weight: 900; color: #ffffff; letter-spacing: 1px;
+            /* Thick black outline/shadow for readability */
+            text-shadow: 0 2px 5px rgba(0,0,0,1), 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
         .progress-track {
             position: relative; width: 100%; height: 12px;
-            background: linear-gradient(90deg, #110522, #000); /* The dark void */
+            background: linear-gradient(90deg, #110522, #000);
             border-radius: 10px; overflow: hidden;
             box-shadow: inset 0 3px 6px rgba(0,0,0,1), 0 0 0 1px rgba(144, 0, 255, 0.4);
         }
 
-        /* The Zeigarnik Pulse - Draws eye to incomplete section */
         .progress-track::before {
             content: ''; position: absolute; inset: 0;
-            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(144,0,255,0.1) 10px, rgba(144,0,255,0.1) 20px);
+            background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(144,0,255,0.2) 10px, rgba(144,0,255,0.2) 20px);
             animation: borderFlow 20s linear infinite; z-index: 0;
         }
 
         .progress-fill {
             position: absolute; top: 0; left: 0; height: 100%; width: 0%; z-index: 1;
-            background: linear-gradient(90deg, var(--gold-dark), var(--gold-pure), var(--gold-white), var(--gold-pure));
+            background: linear-gradient(90deg, var(--purple-rich), var(--purple-neon), #ffffff, var(--purple-neon));
             background-size: 300% 100%; border-radius: 10px;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.9);
+            box-shadow: 0 0 15px rgba(144, 0, 255, 0.9);
             animation: borderFlow 3s linear infinite;
             will-change: width; transition: width 1.5s var(--ease-dopamine);
         }
 
         .ticker-module {
             display: flex; align-items: center;
-            background: rgba(10, 1, 26, 0.85); border-left: 2px solid var(--gold-pure);
+            background: rgba(10, 1, 26, 0.85); border-left: 2px solid var(--purple-neon);
             padding: 0 15px; height: 100%; width: 180px;
             overflow: hidden; position: relative; z-index: 5;
             box-shadow: inset 10px 0 15px rgba(0,0,0,0.8);
         }
 
+        /* CHANGED: Solid white ticker text with heavy shadow */
         .ticker-content {
-            font-size: 0.75rem; font-weight: 900; color: var(--purple-light);
+            font-size: 0.75rem; font-weight: 900; color: #ffffff;
             letter-spacing: 1px; white-space: nowrap; transform: translateX(100%); will-change: transform;
-            text-shadow: 0 2px 4px rgba(0,0,0,1);
+            text-shadow: 0 2px 6px rgba(0,0,0,1);
         }
 
+        /* Keep a gold highlight for accent inside the ticker */
         .ticker-highlight { color: var(--gold-pure); text-shadow: 0 0 8px rgba(255, 215, 0, 0.8); }
 
         @keyframes borderFlow { 0% { background-position: 0% 50%; } 100% { background-position: 100% 50%; } }
         
-        /* The highly addictive kinetic animations */
         @keyframes kineticShake {
             0% { transform: translateX(0); }
             20% { transform: translateX(-3px) rotate(-1deg); }
@@ -230,14 +233,15 @@
             100% { transform: translateX(0); }
         }
         @keyframes dopaminePunch {
-            0% { transform: scale(1); filter: brightness(1); }
-            15% { transform: scale(1.15) translateY(-2px); filter: brightness(2) drop-shadow(0 0 20px var(--gold-white)); }
-            100% { transform: scale(1) translateY(0); filter: brightness(1); }
+            /* Ensured the black drop shadow remains during the animation pulse */
+            0% { transform: scale(1); filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 1)) brightness(1); }
+            15% { transform: scale(1.15) translateY(-2px); filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 1)) brightness(1.5) drop-shadow(0 0 20px rgba(255, 255, 255, 0.8)); }
+            100% { transform: scale(1) translateY(0); filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 1)) brightness(1); }
         }
         @keyframes labelFlash {
-            0% { background: linear-gradient(90deg, var(--gold-pure), var(--gold-bright)); color: var(--void-obsidian); }
-            15% { background: linear-gradient(90deg, #ffffff, var(--gold-white)); color: #000; box-shadow: 0 0 15px #fff; }
-            100% { background: linear-gradient(90deg, var(--gold-pure), var(--gold-bright)); color: var(--void-obsidian); }
+            0% { background: linear-gradient(90deg, #ffffff, #d8d8df); color: var(--text-dark); }
+            15% { background: linear-gradient(90deg, var(--purple-neon), var(--purple-core)); color: #fff; box-shadow: 0 0 15px var(--purple-neon); }
+            100% { background: linear-gradient(90deg, #ffffff, #d8d8df); color: var(--text-dark); }
         }
         @keyframes rippleBurst {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
@@ -252,12 +256,9 @@
 </head>
 <body>
 
-    <!-- SCENE CONTAINER: Precisely scaled to fit inside 800x100 exactly in the center -->
     <div class="scene-container" id="scene-wrapper">
-        
         <div class="ambient-backlight"></div>
 
-        <!-- LOGO SWEEPER -->
         <div class="logo-sweeper" id="logo-sweeper">
             <div class="logo-inner-ring">
                 <!-- INSERT YOUR LOGO HERE -->
@@ -265,7 +266,6 @@
             </div>
         </div>
 
-        <!-- CORE OVERLAY -->
         <div class="master-overlay-wrapper" id="overlay">
             <div class="overlay-core">
                 
@@ -273,7 +273,6 @@
                 <canvas id="particle-canvas"></canvas>
                 <div class="screen-texture"></div>
 
-                <!-- DOPAMINE MODULE: SUBS -->
                 <div class="data-module" id="mod-subs">
                     <div class="data-label">SUBS</div>
                     <div class="data-value" id="val-subs">0<div class="lens-flare"></div></div>
@@ -282,7 +281,6 @@
 
                 <div class="separator"></div>
 
-                <!-- DOPAMINE MODULE: LIKES -->
                 <div class="data-module" id="mod-likes">
                     <div class="data-label">LIKES</div>
                     <div class="data-value" id="val-likes">0<div class="lens-flare"></div></div>
@@ -291,7 +289,6 @@
 
                 <div class="separator"></div>
 
-                <!-- PROGRESS MODULE: ZEIGARNIK EFFECT -->
                 <div class="goal-module">
                     <div class="goal-header">
                         <span class="goal-title">SUB GOAL</span>
@@ -302,7 +299,6 @@
                     </div>
                 </div>
 
-                <!-- TICKER -->
                 <div class="ticker-module">
                     <div class="ticker-content" id="ticker-text">
                         DROP A LIKE & SUBSCRIBE
@@ -314,9 +310,6 @@
     </div>
 
     <script>
- 
-
-        // 1. Simplex Math Engine
         const SimplexMath = (function() {
             const F2 = 0.5 * (Math.sqrt(3.0) - 1.0), G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
             const p = new Uint8Array(256); for (let i = 0; i < 256; i++) p[i] = Math.floor(Math.random() * 256);
@@ -338,7 +331,6 @@
             };
         })();
 
-        // 2. Liquid Plasma Engine
         class PlasmaEngine {
             constructor(canvasId) {
                 this.canvas = document.getElementById(canvasId); this.ctx = this.canvas.getContext('2d', { alpha: false });
@@ -376,7 +368,6 @@
             }
         }
 
-        // 3. Spark Particles
         class ParticleEngine {
             constructor(canvasId) {
                 this.canvas = document.getElementById(canvasId); this.ctx = this.canvas.getContext('2d');
@@ -401,7 +392,6 @@
             }
         }
 
-        // 4. Dopamine Architecture: Slot Machine Scramble
         class OverlayState {
             constructor() {
                 this.state = { subs: 0, likes: 0, goal: 5000 };
@@ -413,11 +403,9 @@
             }
             format(num) { return num.toLocaleString('en-US'); }
             
-            // The Slot Machine Effect: Scrambles numbers rapidly before landing on the real value
             scrambleNumber(moduleElement, valueElement, targetValue, duration = 400) {
                 let start = Date.now();
                 
-                // Trigger CSS Shake, Ripple, and Flare
                 moduleElement.classList.remove('dopamine-strike');
                 void moduleElement.offsetWidth; 
                 moduleElement.classList.add('dopamine-strike');
@@ -449,7 +437,6 @@
             }
         }
 
-        // 5. Event Ticker
         class TickerEngine {
             constructor() {
                 this.element = document.getElementById('ticker-text'); this.container = this.element.parentElement;
@@ -467,7 +454,6 @@
             }
         }
 
-        // 6. Cinematic Wipe Logic
         class CinematicSweepController {
             constructor(particleEngine) {
                 this.scene = document.getElementById('scene-wrapper'); this.particleEngine = particleEngine;
@@ -503,7 +489,6 @@
             }
         }
 
-        // 7. Sim Engine
         class SimulationEngine {
             constructor(state, ticker) {
                 this.state = state; this.ticker = ticker; 
@@ -528,16 +513,12 @@
             }
         }
 
-        // Boot Sequence
         document.addEventListener('DOMContentLoaded', () => {
             const particles = new ParticleEngine('particle-canvas');
             const state = new OverlayState();
             const ticker = new TickerEngine();
-            // Start rendering liquid plasma
             new PlasmaEngine('plasma-canvas');
-            // Start Logo animation loop
             new CinematicSweepController(particles);
-            // Simulate data for preview
             new SimulationEngine(state, ticker);
         });
     </script>
